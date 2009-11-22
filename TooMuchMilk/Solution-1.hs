@@ -2,7 +2,7 @@
 
  Too Much Milk - Solution 1:
    If you find that there is no milk and there is no note on the door of
-   the fridge, then leave a note on the fridge's dooor, go and buy milk,
+   the fridge, then leave a note on the fridge's door, go and buy milk,
    put the milk in the fridge, and remove your note.
 
 (bob) No notes.
