@@ -1,8 +1,0 @@
-import Control.Applicative(Applicative((<*>)), (<$>))
-import Control.Concurrent(forkIO, threadDelay)
-import Control.Monad.Reader(Monad((>>), return), MonadIO(..),
-                            MonadReader(ask), ReaderT(runReaderT))
-import Data.IORef(IORef, modifyIORef, newIORef, readIORef,
-                  writeIORef)
-import System.Random(Random(randomR), newStdGen)
-import Text.Printf(printf)
