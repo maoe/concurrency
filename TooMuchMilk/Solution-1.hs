@@ -21,26 +21,28 @@ import System.Random
 main :: IO ()
 main = do
   fridge <- newFridge
-  forkIO $ alice fridge
-  bob fridge
+  forkIO $ runReaderT alice (fridge, "alice")
+  runReaderT bob (fridge, "bob")
   getChar
   return ()
 
-alice :: Fridge -> IO ()
-alice f = do
-  checkNote f "alice" $ do
-    checkMilk f "alice" $ do
-      leaveNote f
-      buyMilk f "alice"
-      removeNote f
+type Job = ReaderT (Fridge, String) IO
 
-bob :: Fridge -> IO ()
-bob f = do
-  checkNote f "bob" $ do
-    checkMilk f "bob" $ do
-      leaveNote f
-      buyMilk f "bob"
-      removeNote f
+alice :: Job ()
+alice = do
+  checkNote $ do
+    checkMilk $ do
+      leaveNote
+      buyMilk
+      removeNote
+
+bob :: Job ()
+bob = do
+  checkNote $ do
+    checkMilk $ do
+      leaveNote
+      buyMilk
+      removeNote
 
 data Fridge = Fridge { note :: Note
                      , milk :: Milk }
@@ -52,30 +54,40 @@ newFridge :: IO Fridge
 newFridge = Fridge <$> newIORef Nothing
                    <*> newIORef 0
 
-checkNote :: Fridge -> String -> IO () -> IO ()
-checkNote fridge name cont = do
-  n <- readIORef (note fridge)
+-- checkNote :: Job () -> Job ()
+checkNote cont = do
+  (fridge, name) <- ask
+  n <- liftIO $ readIORef $ note fridge
   case n of
-    Just () -> putStrLn ("(" ++ name ++ ") There is a note!")
-    _       -> putStrLn ("(" ++ name ++ ") No notes.") >> cont
+    Just () -> liftIO $ putStrLn $ "(" ++ name ++ ") There is a note!"
+    _       -> do liftIO (putStrLn ("(" ++ name ++ ") No notes."))
+                  cont
 
-checkMilk :: Fridge -> String -> IO () -> IO ()
-checkMilk fridge name cont = do
-  m <- readIORef (milk fridge)
+-- checkMilk :: Job () -> Job ()
+checkMilk cont = do
+  (fridge, name) <- ask
+  m <- liftIO $ readIORef $ milk fridge
   case m of
-    0 -> cont
-    _ -> putStrLn $ name ++ " find a milk! (" ++ show m ++ ")"
+    0 -> do liftIO $ putStrLn $ "(" ++ name ++ ") No milks."
+            cont
+    _ -> liftIO $ putStrLn $ "(" ++ name ++ " There is a milk! (" ++ show m ++ ")"
 
-leaveNote :: Fridge -> IO ()
-leaveNote = flip writeIORef (Just ()) . note
+leaveNote :: Job ()
+leaveNote = do
+  (fridge, _) <- ask
+  liftIO $ writeIORef (note fridge) (Just ())
 
-removeNote :: Fridge -> IO ()
-removeNote = flip writeIORef Nothing . note
+removeNote :: Job ()
+removeNote = do
+  (fridge, _) <- ask
+  liftIO $ writeIORef (note fridge) Nothing
 
-buyMilk :: Fridge -> String -> IO ()
-buyMilk fridge name = do
-  (r, _) <- randomR (1, 5) <$> newStdGen
-  putStrLn $ "(" ++ name ++ ") I go and buy a milk."
-  threadDelay (r*10^6)
-  putStrLn $ "(" ++ name ++ ") I bought a milk."
-  modifyIORef (milk fridge) (+1)
+buyMilk :: Job ()
+buyMilk = do
+  (fridge, name) <- ask
+  liftIO $ do
+    (r, _) <- randomR (1, 5) <$> newStdGen
+    putStrLn $ "(" ++ name ++ ") I go and buy a milk."
+    threadDelay (r*10^6)
+    putStrLn $ "(" ++ name ++ ") I bought a milk."
+    modifyIORef (milk fridge) (+1)
