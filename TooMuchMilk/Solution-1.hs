@@ -1,4 +1,5 @@
 {-
+
  Too Much Milk - Solution 1:
    If you find that there is no milk and there is no note on the door of
    the fridge, then leave a note on the fridge's dooor, go and buy milk,
@@ -10,6 +11,7 @@
 (alice) I go and buy a milk.
 (alice) I bought a milk.
 (bob) I bought a milk.
+
 -}
 
 import Control.Applicative
@@ -17,6 +19,7 @@ import Control.Concurrent
 import Control.Monad.Reader
 import Data.IORef
 import System.Random
+import Text.Printf
 
 main :: IO ()
 main = do
@@ -59,18 +62,16 @@ checkNote cont = do
   (fridge, name) <- ask
   n <- liftIO $ readIORef $ note fridge
   case n of
-    Just () -> liftIO $ putStrLn $ "(" ++ name ++ ") There is a note!"
-    _       -> do liftIO (putStrLn ("(" ++ name ++ ") No notes."))
-                  cont
+    Just () ->  liftIO $ putStrLn $ printf "(%s) There is a note!" name
+    _       -> (liftIO $ putStrLn $ printf "(%s) No notes." name) >> cont
 
 -- checkMilk :: Job () -> Job ()
 checkMilk cont = do
   (fridge, name) <- ask
   m <- liftIO $ readIORef $ milk fridge
   case m of
-    0 -> do liftIO $ putStrLn $ "(" ++ name ++ ") No milks."
-            cont
-    _ -> liftIO $ putStrLn $ "(" ++ name ++ " There is a milk! (" ++ show m ++ ")"
+    0 -> (liftIO $ putStrLn $ printf "(%s) No milks." name) >> cont
+    _ ->  liftIO $ putStrLn $ printf "(%s) There is a milk! (%d)" name m
 
 leaveNote :: Job ()
 leaveNote = do
@@ -87,7 +88,7 @@ buyMilk = do
   (fridge, name) <- ask
   liftIO $ do
     (r, _) <- randomR (1, 5) <$> newStdGen
-    putStrLn $ "(" ++ name ++ ") I go and buy a milk."
+    putStrLn $ printf "(%s) I go and buy a milk." name
     threadDelay (r*10^6)
-    putStrLn $ "(" ++ name ++ ") I bought a milk."
+    putStrLn $ printf "(%s) I bought a milk." name
     modifyIORef (milk fridge) (+1)
